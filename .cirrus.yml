@@ -2,9 +2,9 @@ env:
   CIRRUS_CLONE_DEPTH: 1
   VT_TYPE: qemu
 
-fedora_35_task:
+fedora_40_task:
   container:
-    image: quay.io/avocado-framework/avocado-vt-ci-fedora-35
+    image: quay.io/avocado-framework/avocado-ci-fedora-40
     kvm: true
   env:
     matrix:
@@ -22,15 +22,19 @@ fedora_35_task:
       - VT_TYPE: qemu
       - VT_TYPE: libvirt
   build_script: &build_scr
+    - python3 -m pip install wheel
     - (echo $SETUP | grep -v PYPI_UPLOAD) || make pypi
   setup_script: &setup_scr
     - python3 --version
     - test -z $AVOCADO_SRC || python3 -m pip install $AVOCADO_SRC
     - python3 $SETUP
   bootstrap_script: &bootstrap_scr
+    - dnf install -y libvirt qemu-kvm tcpdump iputils gcc
     # Pin the versions of tp-qemu and tp-libvirt to known working versions.
     # These versions can be bumped at any time, but provide better understanding
     # of regressions or version update requirements on the test providers side.
+    - mkdir -p /root/avocado/data/avocado-vt/images/
+    - curl -s https://avocado-project.org/data/assets/jeos/27/jeos-27-64.qcow2.xz | xz -d > /root/avocado/data/avocado-vt/images/jeos-27-x86_64.qcow2
     - python3 -c "from virttest.asset import ConfigLoader; cl = ConfigLoader('virttest/test-providers.d/io-github-autotest-qemu.ini'); cl.set('provider', 'ref', '33ed9b0ac6e4255877ff109a1d91fa84c9097dc5'); cl.save()"
     - python3 -c "from virttest.asset import ConfigLoader; cl = ConfigLoader('virttest/test-providers.d/io-github-autotest-libvirt.ini'); cl.set('provider', 'ref', 'e6af7700f879fe1547bfb1421439121d35c919bd'); cl.save()"
     - python3 -m avocado vt-bootstrap --vt-type=$VT_TYPE --vt-skip-verify-download-assets --yes-to-all
@@ -49,7 +53,7 @@ fedora_35_task:
 
 avocado_devel_task:
   container:
-    image: quay.io/avocado-framework/avocado-vt-ci-fedora-35
+    image: quay.io/avocado-framework/avocado-ci-fedora-40
     kvm: true
   env:
     matrix:
